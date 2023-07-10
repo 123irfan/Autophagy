@@ -56,6 +56,7 @@ function gameLoop(){
 			ctx.clearRect(0,0,850,550);
 			camera.update();
 			manageBackground();
+			managePlates();
 			manageRbcs();
 			manageBacterias();
 			manageViruses();
