@@ -1,0 +1,347 @@
+function drawImage(image,x,y,width,height){
+	ctx.imageSmoothingEnabled=false;
+	ctx.drawImage(image,x,y,width,height);
+}
+function drawClippedImage(image,sx,sy,sw,sh,x,y,width,height){
+	ctx.imageSmoothingEnabled=false;
+	ctx.drawImage(image,sx,sy,sw,sh,x,y,width,height);
+}
+const moveR=[];
+moveR[0]=new Image();
+moveR[0].src="moveRight1.png";
+moveR[1]=new Image();
+moveR[1].src="moveRight2.png";
+const moveL=[];
+moveL[0]=new Image();
+moveL[0].src="moveLeft1.png";
+moveL[1]=new Image();
+moveL[1].src="moveLeft2.png";
+
+const phagoOpenR=[];
+phagoOpenR[0]=new Image();
+phagoOpenR[0].src="phagoRight1.png";
+phagoOpenR[1]=new Image();
+phagoOpenR[1].src="phagoRight2.png";
+phagoOpenR[2]=new Image();
+phagoOpenR[2].src="phagoRight3.png";
+phagoOpenR[3]=new Image();
+const phagoCloseR=[];
+phagoCloseR[0]=new Image();
+phagoCloseR[0].src="phagoRight4.png";
+phagoCloseR[1]=new Image();
+phagoCloseR[1].src="phagoRight5.png";
+
+const phagoOpenL=[];
+phagoOpenL[0]=new Image();
+phagoOpenL[0].src="phagoLeft1.png";
+phagoOpenL[1]=new Image();
+phagoOpenL[1].src="phagoLeft2.png";
+phagoOpenL[2]=new Image();
+phagoOpenL[2].src="phagoLeft3.png";
+phagoOpenL[3]=new Image();
+const phagoCloseL=[];
+phagoCloseL[0]=new Image();
+phagoCloseL[0].src="phagoLeft4.png";
+phagoCloseL[1]=new Image();
+phagoCloseL[1].src="phagoLeft5.png";
+
+
+const cytoR=[];
+cytoR[0]=new Image();
+cytoR[0].src="cytoRight1.png";
+cytoR[1]=new Image();
+cytoR[1].src="cytoRight2.png";
+const cytoL=[];
+cytoL[0]=new Image();
+cytoL[0].src="cytoLeft1.png";
+cytoL[1]=new Image();
+cytoL[1].src="cytoLeft2.png";
+
+class Player{
+	constructor(){
+		this.name="monocyte";
+		this.x=200;
+		this.oldX=200;
+		this.y=300;
+		this.width=70;
+		this.height=100;
+		this.vx=3;
+		this.vy=-1;
+		this.fallingSpeed=1;
+		this.imageMovingNo=0;
+		this.imagePhagoOpenNo=0;
+		this.imagePhagoCloseNo=0;
+		this.imageCytoNo=0;
+		this.animationMovingFrame=0;
+		this.previousMovingFrame=0;
+		this.animationCytoFrame=0;
+		this.previousCytoFrame=0;
+		this.animationPhagoOpenFrame=0;
+		this.previousPhagoOpenFrame=0;
+		this.animationPhagoCloseFrame=0;
+		this.previousPhagoCloseFrame=0;
+		this.rightMoveImages=moveR;
+		this.leftMoveImages=moveL;
+		//this.moveImageCount=2;
+		this.rightPhagoOpenImages=phagoOpenR;
+		this.rightPhagoCloseImages=phagoCloseR;
+		this.leftPhagoOpenImages=phagoOpenL;
+		this.leftPhagoCloseImages=phagoCloseL;
+		//this.phagoImageCount=5;
+		this.rightCytoImages=cytoR;
+		this.leftCytoImages=cytoL;
+		this.bombarded=false;
+		this.mouthClose=false;
+		this.cytoImageCount=2;
+		this.leftTriggered=false;
+		this.rightTriggered=true;
+		this.upTriggered=false;
+		this.downTriggered=false;
+		this.box=new Box(this.x+70,this.y+51,this.x+70,this.y+111);
+		this.health=100;
+		this.previousPartner=[];
+		this.collidePartner=[];
+		this.collided=false;
+		this.boxAdded=false;
+		this.boxRemoved=false;
+		this.health=100;
+		this.destroyed=false;
+		this.destructionFrame=0;
+	}
+	toggleMovingAnimation(condition){
+		if(this.animationMovingFrame-this.previousMovingFrame<10){
+			this.imageMovingNo=0;
+		}else if(this.animationMovingFrame-this.previousMovingFrame<20){
+			this.imageMovingNo=1;
+		}else if(this.animationMovingFrame-this.previousMovingFrame>20){
+			this.animationMovingFrame=0;
+		}
+		if(!condition) this.imageMovingNo=0;
+	}
+	toggleCytoAnimation(condition){
+		if(this.animationCytoFrame-this.previousCytoFrame<10){
+			this.imageCytoNo=0;
+		}else if(this.animationCytoFrame-this.previousCytoFrame<20){
+			this.imageCytoNo=1;
+		}else if(this.animationCytoFrame-this.previousCytoFrame>20){
+			this.animationCytoFrame=0;
+			this.bombarded=false;
+		}
+		if(!condition) this.imageCytoNo=0;
+	}
+	togglePhagoOpenAnimation(condition){
+		if(this.animationPhagoOpenFrame-this.previousPhagoOpenFrame<5){
+			this.imagePhagoOpenNo=0;
+		}else if(this.animationPhagoOpenFrame-this.previousPhagoOpenFrame<7){
+			this.imagePhagoOpenNo=1;
+		}else if(this.animationPhagoOpenFrame-this.previousPhagoOpenFrame>7){
+			this.imagePhagoOpenNo=2;
+			if(this.collided){
+				this.mouthClose=true;
+			}
+		}
+		if(!condition) this.imagePhagoOpenNo=0;
+	}
+	togglePhagoCloseAnimation(condition){
+		if(this.animationPhagoCloseFrame-this.previousPhagoCloseFrame<10){
+			this.imagePhagoCloseNo=0;
+		}else if(this.animationPhagoCloseFrame-this.previousPhagoCloseFrame<20){
+			this.imagePhagoCloseNo=1;
+		}else{
+			this.animationPhagoOpenFrame=0;
+			this.animationPhagoCloseFrame=0;
+			this.mouthClose=false;
+		}
+		if(!condition) this.imagePhagoCloseNo=0;
+	}
+	updateMotion(){
+		this.oldX=this.x;
+		this.animationMovingFrame+=1;
+		if(sPressed) this.bombarded=true;
+		//collision codes
+		if(!this.boxRemoved){
+			this.box.x1=this.x+70;
+			this.box.y1=this.y+51;
+			this.box.x2=this.x+70;	
+			this.box.y2=this.y+111;
+			if(this.box.x1<canvas.width && this.box.x2>0){
+				if(!this.boxAdded){
+					collisionBoxes.push(this);
+					this.boxAdded=true;
+				}
+			}else this.boxAdded=false;
+		}
+      		if(player.y<0) player.y=0;
+		if(player.y>canvas.height-player.height) player.y=canvas.height-player.height;
+		if(player.x<0) player.x=0;
+		if(player.x>canvas.width-player.width) player.x=canvas.width-player.width;
+		if(camera.cameraXactivated) this.vx=0;
+		else this.vx=3;
+		if(rightPressed && leftPressed){
+			this.x+=0;
+			this.handleUpDown();
+			if(this.mouthClose){
+				this.animationPhagoCloseFrame+=1;
+				this.togglePhagoCloseAnimation(rightPressed);
+			}else if(this.bombarded){
+				this.animationCytoFrame+=1;
+				this.toggleCytoAnimation(rightPressed);
+			}
+			else if(spacePressed){
+				this.animationPhagoOpenFrame+=1;
+				this.togglePhagoOpenAnimation(rightPressed);
+				
+			}
+			else	this.toggleMovingAnimation(rightPressed);
+		}
+		else if(rightPressed){
+			this.rightTriggered=true;
+			this.leftTriggered=false;
+			this.x+=this.vx;
+			this.handleUpDown();
+			if(this.mouthClose){
+				this.animationPhagoCloseFrame+=1;
+				this.togglePhagoCloseAnimation(rightPressed);
+			}else if(this.bombarded){
+				this.animationCytoFrame+=1;
+				this.toggleCytoAnimation(rightPressed);
+			}
+			else if(spacePressed){
+				this.animationPhagoOpenFrame+=1;
+				this.togglePhagoOpenAnimation(rightPressed);
+			}
+			else	this.toggleMovingAnimation(rightPressed);
+		}else if(leftPressed){
+			this.leftTriggered=true;
+			this.rightTriggered=false;
+			this.x-=this.vx;
+			this.handleUpDown();
+			if(this.mouthClose){
+				this.animationPhagoCloseFrame+=1;
+				this.togglePhagoCloseAnimation(leftPressed);
+			}else if(this.bombarded){
+				this.animationCytoFrame+=1;
+				this.toggleCytoAnimation(leftPressed);
+			}
+			else if(spacePressed){
+				this.animationPhagoOpenFrame+=1;
+				this.togglePhagoOpenAnimation(leftPressed);
+			}
+			else	this.toggleMovingAnimation(leftPressed);
+		}else if(!rightPressed && !leftPressed){
+			//this.imageMovingNo=0;
+			this.handleUpDown();
+			if(this.mouthClose){
+				this.animationPhagoCloseFrame+=1;
+				this.togglePhagoCloseAnimation(rightPressed);
+			}
+			else if(this.bombarded){
+				this.animationCytoFrame+=1;
+				this.toggleCytoAnimation(rightPressed);
+			}
+			else if(spacePressed){
+				/*this.animationPhagoOpenFrame+=1;
+				this.togglePhagoOpenAnimation(rightPressed);*/
+				this.imagePhagoOpenNo=2;
+			}
+			else	this.toggleMovingAnimation(rightPressed);
+			this.x+=0;
+		}
+		if(this.collided){
+			//this.mouthClose=true;
+			this.handleCollision();
+			this.collidePartner=[];
+		}
+		
+	}
+	handleUpDown(){
+		if(upPressed && downPressed){
+			this.y+=0;
+		}
+		else if(upPressed){
+			this.upTriggered=true;
+			this.downTriggered=false;
+			this.y+=this.vy;
+		}else if(downPressed){
+			this.downTriggered=true;
+			this.upTriggered=false;
+			this.y-=this.vy;
+		}
+	}
+	draw(){
+		if(this.leftTriggered){
+			if(this.mouthClose){
+				this.leftPhagoCloseImages[this.imagePhagoCloseNo].onload=drawImage(this.leftPhagoCloseImages[this.imagePhagoCloseNo],this.x,this.y,this.width,this.height);
+			}else if(this.bombarded){
+				this.leftCytoImages[this.imageCytoNo].onload=drawImage(this.leftCytoImages[this.imageCytoNo],this.x,this.y,this.width,this.height);	
+			}else if(spacePressed){
+				this.leftPhagoOpenImages[this.imagePhagoOpenNo].onload=drawImage(this.leftPhagoOpenImages[this.imagePhagoOpenNo],this.x,this.y,this.width,this.height);
+			}
+			else if(!this.bombarded && !spacePressed && !this.mouthClose){
+				this.leftMoveImages[this.imageMovingNo].onload=drawImage(this.leftMoveImages[this.imageMovingNo],this.x,this.y,this.width,this.height);
+			}
+		}else if(this.rightTriggered){
+			if(this.mouthClose){
+				this.rightPhagoCloseImages[this.imagePhagoCloseNo].onload=drawImage(this.rightPhagoCloseImages[this.imagePhagoCloseNo],this.x,this.y,this.width,this.height);
+			}
+			else if(this.bombarded){
+				this.rightCytoImages[this.imageCytoNo].onload=drawImage(this.rightCytoImages[this.imageCytoNo],this.x,this.y,this.width,this.height);
+			}
+			else if(spacePressed){
+				this.rightPhagoOpenImages[this.imagePhagoOpenNo].onload=drawImage(this.rightPhagoOpenImages[this.imagePhagoOpenNo],this.x,this.y,this.width,this.height);
+			}else if(!this.bombarded && !spacePressed && !this.mouthClose){
+				this.rightMoveImages[this.imageMovingNo].onload=drawImage(this.rightMoveImages[this.imageMovingNo],this.x,this.y,this.width,this.height);
+			}
+		}
+	}
+	updateHealth(){
+		if(this.health<=0){
+			this.destroyed=true;
+			this.destructionFrame=frames;
+		}
+	}
+	handleCollision(){
+		for(let i=0;i<this.collidePartner.length;i++){
+			if(!isThere(this.previousPartner,this.collidePartner[i]) && spacePressed){
+				if(this.collidePartner[i].x<this.collidePartner[i].oldX && this.rightTriggered){
+					if(this.collidePartner[i].name=='rbc'){
+						if(this.collidePartner[i].dely2==40){
+							this.health-=rbcLoss;
+							this.collidePartner[i].destroyed=true;
+						}
+					}else if(this.collidePartner[i].name=='bacteria'){
+						this.collidePartner[i].destroyed=true;
+					}else if(this.collidePartner[i].name=='deadCell'){
+						this.collidePartner[i].destroyed=true;
+					}else if(this.collidePartner[i].name=='virus'){
+						this.collidePartner[i].destroyed=true;
+					}
+				}else if(this.collidePartner[i].x<this.box.x1 && this.box.x1<this.collidePartner[i].oldX && this.leftTriggered){
+					if(this.collidePartner[i].name=='rbc'){
+						if(this.collidePartner[i].dely2==40){
+							this.health-=rbcLoss;
+							this.collidePartner[i].destroyed=true;
+						}
+					}else if(this.collidePartner[i].name=='bacteria'){
+						this.collidePartner[i].destroyed=true;
+					}else if(this.collidePartner[i].name=='deadCell'){
+						this.collidePartner[i].destroyed=true;
+					}else if(this.collidePartner[i].name=='virus'){
+						this.collidePartner[i].destroyed=true;
+					}
+				}
+				//console.log("colliding");
+			}
+		}
+		this.previousPartner=this.collidePartner;
+		//this.collidePartner=[];
+	}	
+}
+const player=new Player();
+function managePlayer(){
+	console.log(player.imagePhagoCloseNo);
+	player.updateMotion();
+	player.draw();
+}
+		
+		

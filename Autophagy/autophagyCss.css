@@ -1,0 +1,9 @@
+#ourcanvas{
+	position:absolute;
+	top:20%;
+	left:20%;
+	
+	width:800px;
+	height:500px;
+	border:5px solid black;
+}
